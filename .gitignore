@@ -1,0 +1,25 @@
+#folders
+/.qsys_edit
+/db
+/greybox_tmp
+/incremental_db
+/output_files
+/simulation/modelsim
+/pll
+/pll_sim
+
+#extensions in current folder
+*.bak
+*.qsf
+*.qws
+*.qdf
+*.cmp
+*.qip
+*.dpf
+*.rpt
+*.txt
+*.bsf
+*.ppf
+*.sip
+*.spd
+*.f
