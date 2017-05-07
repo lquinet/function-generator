@@ -19,7 +19,6 @@ entity lut_reader is
 		nb_pt_to_skip_in			: in unsigned(15 downto 0); -- to count until 1000 0000
 		address_rom_out 			: out unsigned (15 DOWNTO 0);
 		q_rom_out						: out unsigned(7 DOWNTO 0);
-		next_duty_cycle_out		: out unsigned(7 DOWNTO 0); -- inital next_duty_cycle is 100
 		lut_duty_cycle_out	: out unsigned(7 DOWNTO 0)
 	);
 	
@@ -29,7 +28,6 @@ architecture rtl of lut_reader is
 
 	signal address_rom 		: unsigned (15 DOWNTO 0);
 	signal q_rom				: unsigned(7 DOWNTO 0);
-	signal next_duty_cycle	: unsigned(7 DOWNTO 0) := x"64"; -- inital next_duty_cycle is 100
 	signal curr_duty_cycle	: unsigned(7 DOWNTO 0) := x"64"; -- inital curr_duty_cycle is 100
 	
 	COMPONENT rom IS
@@ -53,7 +51,6 @@ begin
 	begin
 		if (reset_in = '1') then
 			address_rom <= (others => '0');
-			next_duty_cycle	 <= x"64";
 			curr_duty_cycle	 <= x"64";
 			
 		elsif (rising_edge(clk_lut_in)) then
@@ -76,6 +73,5 @@ begin
 	lut_duty_cycle_out <= curr_duty_cycle;
 	address_rom_out <= address_rom;
 	q_rom_out <= q_rom;
-	next_duty_cycle_out <= 	next_duty_cycle;
 	
 end rtl;

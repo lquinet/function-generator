@@ -3,6 +3,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use IEEE.numeric_std.all;
+use work.my_types.all;
 
 entity function_generator is
 
@@ -12,8 +13,11 @@ entity function_generator is
 		--ADDR_WIDTH : natural :=0;
 		PWM_MAX_VALUE : natural :=100;
 		LUT_LENGTH 		: unsigned(15 downto 0) := x"7A12"; -- 31250 points
-		PWM_OUT_FREQ : unsigned(19 downto 0) := x"07A12" -- 31250 Hz (f_sig <= 625Hz)
+		PWM_OUT_FREQ : unsigned(19 downto 0) := x"07A12"; -- 31250 Hz (f_sig <= 625Hz)
 		-- PWM_OUT_FREQ : unsigned(19 downto 0) := x"4C4B4" -- 312500 Hz
+		F_SIG_MAX_1HZ_RES : natural :=625;
+		F_SIG_MAX_10HZ_RES : natural :=9765;
+		F_SIG_MAX : natural := 31250
 	);
 
 	port 
@@ -34,14 +38,10 @@ architecture rtl of function_generator is
 	signal clk_100MHz				: std_logic;
 	signal clk_31250KHz			: std_logic;
 	signal clk_3125KHz			: std_logic;
-	signal clk_in_pwm				: std_logic;
-	signal clk_in_sel				: std_logic := '0'; -- 0 for 3125KHz clock and 1 for 31250KHz clock
+	signal clk_pwm				: std_logic;
 	signal cnt_pwm_sig			: unsigned(7 downto 0);
 	signal lut_nb_pt_to_skip	: unsigned(15 downto 0); 
 	signal locked_pll				: std_logic;
-	signal f_sig 					: unsigned(19 downto 0) := x"0012C";
-	signal is_f_sig_changed		: std_logic := '0';
-	signal div_out_sig				: unsigned(35 DOWNTO 0);
 	signal lut_duty_cycle_sig	: unsigned(7 DOWNTO 0);
 	signal reset_pwm				: std_logic := '0';
 	signal reset_lut_reader		: std_logic := '0';
@@ -78,7 +78,6 @@ architecture rtl of function_generator is
 			nb_pt_to_skip_in			: in unsigned(15 downto 0); -- to count until 1000 0000
 			address_rom_out 			: out unsigned (15 DOWNTO 0);
 			q_rom_out						: out unsigned(7 DOWNTO 0);
-			next_duty_cycle_out		: out unsigned(7 DOWNTO 0);
 			lut_duty_cycle_out	: out unsigned(7 DOWNTO 0)
 		);
 	end component lut_reader;
@@ -98,6 +97,29 @@ architecture rtl of function_generator is
 			pwm_out 				: out std_logic
 		);
 	end component pwm_generator;	
+
+	component frequency_reconfig is
+		generic 
+		(
+			F_SIG_MAX_1HZ_RES : natural;
+			F_SIG_MAX_10HZ_RES : natural;
+			F_SIG_MAX : natural
+		);
+
+		port 
+		(	
+			clk_100MHz_in			: in std_logic;
+			clk_3125KHz_in		: in std_logic;
+			clk_31250KHz_in	: in std_logic;
+			reset_in				: in std_logic;
+			
+			clk_pwm_out				: out std_logic;
+			lut_nb_pt_to_skip_out	: out unsigned(15 downto 0);
+			reset_pwm_out				: out std_logic;
+			reset_lut_reader_out		: out std_logic
+		);
+	end component frequency_reconfig;	
+	
 	
 begin
 	
@@ -115,55 +137,44 @@ begin
 		PWM_MAX_VALUE => PWM_MAX_VALUE
 	) port map (	
 		clk_100M_in => clk_100MHz,
-		clk_lut_in => clk_in_pwm,
+		clk_lut_in => clk_pwm,
 		reset_in => reset_lut_reader,
 		cnt_pwm_in => cnt_pwm_sig,
 		nb_pt_to_skip_in => lut_nb_pt_to_skip,
+		
 		address_rom_out => address_rom,
 		q_rom_out => q_rom,
-		next_duty_cycle_out => next_duty_cycle,
 		lut_duty_cycle_out => lut_duty_cycle_sig
 	);	
 	
 	pwm_generator_inst : pwm_generator generic map (
 		PWM_MAX_VALUE => PWM_MAX_VALUE
 	) port map (	
-		clk_in => clk_in_pwm,
+		clk_in => clk_pwm,
 		reset_in	=> reset_pwm,
 		lut_duty_cycle_in	=> lut_duty_cycle_sig,
+		
 		cnt_pwm_out => cnt_pwm_sig,
 		pwm_out => pwm_out
 	);
 	
-	process (is_f_sig_changed, reset_in)
-	begin
-		if (reset_in = '1') then
-		
-		elsif(rising_edge(is_f_sig_changed)) then
+	frequency_reconfig_inst : frequency_reconfig generic map (
+			F_SIG_MAX_1HZ_RES => F_SIG_MAX_1HZ_RES,
+			F_SIG_MAX_10HZ_RES => F_SIG_MAX_10HZ_RES,
+			F_SIG_MAX => F_SIG_MAX
+	) port map (	
+			clk_100MHz_in => clk_100MHz,
+			clk_3125KHz_in => clk_3125KHz,
+			clk_31250KHz_in => clk_31250KHz,
+			reset_in => '0',
 			
-			if (is_f_sig_changed = '1') then
-				reset_pwm <= '1';
-				reset_lut_reader <= '1';
-			else 
-				reset_pwm <= '0';
-				reset_lut_reader <= '0';
-			end if;
-			
-			
-		end if;
-	end process;
-	
-	--div_out_sig <= (LUT_LENGTH * f_sig)/PWM_OUT_FREQ ; -- lut_nb_pt_to_skip <= ((LUT_LENGTH * ("0000" & f_sig))/PWM_OUT_FREQ);
-	--lut_nb_pt_to_skip <= div_out_sig(15 downto 0);
-	lut_nb_pt_to_skip <= f_sig(15 downto 0);
-	
-	clk_in_pwm <= 	clk_3125KHz when clk_in_sel = '0' else
-						clk_31250KHz;
+			clk_pwm_out => clk_pwm,
+			lut_nb_pt_to_skip_out => lut_nb_pt_to_skip,
+			reset_pwm_out => reset_pwm,
+			reset_lut_reader_out => reset_lut_reader
+	);	
 	
 	testclk100_out <= clk_100MHz;
 	testclk50_out <= clk_50M_in;
-	
-	--pwm_out <= pwm_sig;
-	--clk_100M <= clk_50M_in;
-	--q_rom <= unsigned(q);
+
 end rtl;
