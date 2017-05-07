@@ -46,6 +46,11 @@ architecture rtl of function_generator is
 	signal reset_pwm				: std_logic := '0';
 	signal reset_lut_reader		: std_logic := '0';
 	
+	-- for simu
+	signal address_rom 		: unsigned (15 DOWNTO 0);
+	signal q_rom				: unsigned(7 DOWNTO 0);
+	signal next_duty_cycle	: unsigned(7 DOWNTO 0); 
+	
 	component pll is
 		port (
 			refclk   : in  std_logic := '0'; --  refclk.clk
@@ -67,9 +72,13 @@ architecture rtl of function_generator is
 		port 
 		(	
 			clk_100M_in 			: in std_logic;
+			clk_lut_in					: in std_logic;
 			reset_in					: in std_logic;
 			cnt_pwm_in 				: in unsigned(7 downto 0);
-			nb_pt_to_skip			: in unsigned(15 downto 0); -- to count until 1000 0000
+			nb_pt_to_skip_in			: in unsigned(15 downto 0); -- to count until 1000 0000
+			address_rom_out 			: out unsigned (15 DOWNTO 0);
+			q_rom_out						: out unsigned(7 DOWNTO 0);
+			next_duty_cycle_out		: out unsigned(7 DOWNTO 0);
 			lut_duty_cycle_out	: out unsigned(7 DOWNTO 0)
 		);
 	end component lut_reader;
@@ -106,9 +115,13 @@ begin
 		PWM_MAX_VALUE => PWM_MAX_VALUE
 	) port map (	
 		clk_100M_in => clk_100MHz,
+		clk_lut_in => clk_in_pwm,
 		reset_in => reset_lut_reader,
 		cnt_pwm_in => cnt_pwm_sig,
-		nb_pt_to_skip => lut_nb_pt_to_skip,
+		nb_pt_to_skip_in => lut_nb_pt_to_skip,
+		address_rom_out => address_rom,
+		q_rom_out => q_rom,
+		next_duty_cycle_out => next_duty_cycle,
 		lut_duty_cycle_out => lut_duty_cycle_sig
 	);	
 	

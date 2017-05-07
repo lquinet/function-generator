@@ -13,9 +13,13 @@ entity lut_reader is
 	port 
 	(	
 		clk_100M_in 			: in std_logic;
+		clk_lut_in					: in std_logic;
 		reset_in					: in std_logic;
 		cnt_pwm_in 				: in unsigned(7 downto 0);
-		nb_pt_to_skip			: in unsigned(15 downto 0); -- to count until 1000 0000
+		nb_pt_to_skip_in			: in unsigned(15 downto 0); -- to count until 1000 0000
+		address_rom_out 			: out unsigned (15 DOWNTO 0);
+		q_rom_out						: out unsigned(7 DOWNTO 0);
+		next_duty_cycle_out		: out unsigned(7 DOWNTO 0); -- inital next_duty_cycle is 100
 		lut_duty_cycle_out	: out unsigned(7 DOWNTO 0)
 	);
 	
@@ -45,34 +49,33 @@ begin
 		unsigned(q)	 => q_rom
 	);
 
-	process (clk_100M_in, reset_in)
+	process (clk_lut_in, reset_in)
 	begin
 		if (reset_in = '1') then
 			address_rom <= (others => '0');
 			next_duty_cycle	 <= x"64";
 			curr_duty_cycle	 <= x"64";
 			
-		elsif (rising_edge(clk_100M_in)) then
-		
-			-- store next LUT value at the end of PWM counter
-			if (cnt_pwm_in = PWM_MAX_VALUE-2) then
-				-- store next LUT value
-				next_duty_cycle <= q_rom;
-				curr_duty_cycle <= next_duty_cycle;	 
-			end if;
+		elsif (rising_edge(clk_lut_in)) then
+			-- Read and increment LUT at the beginning of PWM counter
+			if (cnt_pwm_in = 0) then 	
 			
-			-- Increment rom address at the beginning of the PWM counter (but don't read the value at this time!)
-			if (cnt_pwm_in = 0) then 
-				if (address_rom + nb_pt_to_skip < LUT_LENGTH) then
-					address_rom <= address_rom + nb_pt_to_skip;
+				-- store next LUT value
+				curr_duty_cycle <= q_rom;	 
+	
+				-- Increment rom address
+				if (address_rom + nb_pt_to_skip_in < LUT_LENGTH) then
+					address_rom <= address_rom + nb_pt_to_skip_in;
 				else
 					address_rom <= (others => '0');
-				end if;
-			end if;
-				
+				end if;								
+			end if;				
 		end if;
 	end process;
 
 	lut_duty_cycle_out <= curr_duty_cycle;
+	address_rom_out <= address_rom;
+	q_rom_out <= q_rom;
+	next_duty_cycle_out <= 	next_duty_cycle;
 	
 end rtl;
