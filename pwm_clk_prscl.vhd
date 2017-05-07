@@ -1,8 +1,8 @@
-library ieee;
+ library ieee;
 use ieee.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
-entity pwm_generator is
+entity pwm_clk_prscl is
 
 	generic 
 	(
@@ -13,32 +13,24 @@ entity pwm_generator is
 
 	port 
 	(	
-		clk_in 				: in std_logic;
+		clk_100M_in			: in std_logic;
+		clk_31M_in			: in std_logic;
 		reset_in				: in std_logic;
-		lut_duty_cycle_in	: in unsigned(7 DOWNTO 0);
-		cnt_pwm_out			: out unsigned(7 downto 0); 
-		pwm_out 				: out std_logic
+		pwm_clk_prscl_sel	: in std_logic; -- 0 for 320 ns clock and 1 for 32ns clock
+		pwm_clk_prscl_out	: out std_logic
 	);
-end pwm_generator;
+end pwm_clk_prscl;
 
-architecture rtl of pwm_generator is
+architecture rtl of pwm_clk_prscl is
 
-	signal cnt_pwm				: unsigned(7 downto 0) := (others => '0');  -- to count until 100
-	
+	signal cnt_clk				: unsigned(7 downto 0) := (others => '0');  -- to count until 100 
 begin
 
-	process (clk_in, reset_in)
+	process (clk_100M_in, reset_in)
 	begin
 		if (reset_in = '1') then
-			cnt_pwm <= (others => '0');
+			cnt_clk <= (others => '0');
 		elsif (rising_edge(clk_in)) then
-			
-			-- output the PWM signal
-			if (cnt_pwm < lut_duty_cycle_in) then
-				pwm_out <= '1';
-			else
-				pwm_out <= '0';
-			end if;
 			
 			-- increment PWM counter
 			if (cnt_pwm < PWM_MAX_VALUE-1) then
