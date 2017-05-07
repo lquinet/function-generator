@@ -4,18 +4,18 @@ use IEEE.numeric_std.all;
 
 entity pwm_generator is
 
-	generic 
-	(
-		DATA_WIDTH : natural :=0; 
-		ADDR_WIDTH : natural :=0;
-		PWM_MAX_VALUE : natural :=100
-	);
+--	generic 
+--	(
+--		--PWM_MAX_VALUE : natural :=100
+--	);
 
 	port 
 	(	
 		clk_in 				: in std_logic;
 		reset_in				: in std_logic;
-		lut_duty_cycle_in	: in unsigned(7 DOWNTO 0);
+		duty_cycle_in		: in unsigned(7 downto 0);
+		pwm_max_value_in	: in unsigned(7 downto 0);
+		
 		cnt_pwm_out			: out unsigned(7 downto 0); 
 		pwm_out 				: out std_logic
 	);
@@ -34,14 +34,14 @@ begin
 		elsif (rising_edge(clk_in)) then
 			
 			-- output the PWM signal
-			if (cnt_pwm < lut_duty_cycle_in) then
+			if (cnt_pwm < duty_cycle_in) then
 				pwm_out <= '1';
 			else
 				pwm_out <= '0';
 			end if;
 			
 			-- increment PWM counter
-			if (cnt_pwm < PWM_MAX_VALUE-1) then
+			if (cnt_pwm < pwm_max_value_in-1) then
 				cnt_pwm <= cnt_pwm + 1;
 			else
 				-- reset counter

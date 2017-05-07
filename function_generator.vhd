@@ -83,19 +83,21 @@ architecture rtl of function_generator is
 	end component lut_reader;
 
 	component pwm_generator is
-		generic 
-		(
-			PWM_MAX_VALUE : natural
-		);
+--	generic 
+--	(
+--		--PWM_MAX_VALUE : natural :=100
+--	);
 
-		port 
-		(	
-			clk_in 				: in std_logic;
-			reset_in				: in std_logic;
-			lut_duty_cycle_in	: in unsigned(7 DOWNTO 0);
-			cnt_pwm_out			: out unsigned(7 downto 0); 
-			pwm_out 				: out std_logic
-		);
+	port 
+	(	
+		clk_in 				: in std_logic;
+		reset_in				: in std_logic;
+		duty_cycle_in		: in unsigned(7 downto 0);
+		pwm_max_value_in	: in unsigned(7 downto 0);
+		
+		cnt_pwm_out			: out unsigned(7 downto 0); 
+		pwm_out 				: out std_logic
+	);
 	end component pwm_generator;	
 
 	component frequency_reconfig is
@@ -147,12 +149,15 @@ begin
 		lut_duty_cycle_out => lut_duty_cycle_sig
 	);	
 	
-	pwm_generator_inst : pwm_generator generic map (
-		PWM_MAX_VALUE => PWM_MAX_VALUE
-	) port map (	
+	pwm_generator_inst : pwm_generator 
+--	generic map (
+--		PWM_MAX_VALUE => PWM_MAX_VALUE
+--	) 
+	port map (	
 		clk_in => clk_pwm,
 		reset_in	=> reset_pwm,
 		lut_duty_cycle_in	=> lut_duty_cycle_sig,
+		pwm_max_value_in => x"64",
 		
 		cnt_pwm_out => cnt_pwm_sig,
 		pwm_out => pwm_out

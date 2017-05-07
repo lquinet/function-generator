@@ -17,6 +17,7 @@ entity lut_reader is
 		reset_in					: in std_logic;
 		cnt_pwm_in 				: in unsigned(7 downto 0);
 		nb_pt_to_skip_in			: in unsigned(15 downto 0); -- to count until 1000 0000
+
 		address_rom_out 			: out unsigned (15 DOWNTO 0);
 		q_rom_out						: out unsigned(7 DOWNTO 0);
 		lut_duty_cycle_out	: out unsigned(7 DOWNTO 0)

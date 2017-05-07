@@ -32,6 +32,7 @@ architecture rtl of frequency_reconfig is
 	signal is_f_sig_changed		: std_logic := '0';
 	signal div_out_sig			: unsigned(19 DOWNTO 0);
 	signal clk_in_sel				: clk_in_sel_type := SEL_CLK_3125KHZ;
+	signal command_sig 				: unsigned(7 downto 0);
 
 	COMPONENT UART IS PORT 
 		(	 
@@ -66,14 +67,22 @@ begin
 				reset_pwm_out <= '1';
 				reset_lut_reader_out <= '1';
 				
-				-- change pwm clock and the number of points to skip depending of the signal frequency
-				if (f_sig <= F_SIG_MAX_1HZ_RES) then
-					div_out_sig <= f_sig;
-					clk_in_sel <= SEL_CLK_3125KHZ;
-					
-				elsif (f_sig <= F_SIG_MAX_10HZ_RES) then
-					div_out_sig <= f_sig/10;
-					clk_in_sel <= SEL_CLK_31250KHZ;
+				-- sine command ('s')
+				if (command_sig = x"73") then
+					-- change pwm clock and the number of points to skip depending of the signal frequency
+					if (f_sig <= F_SIG_MAX_1HZ_RES) then
+						div_out_sig <= f_sig;
+						clk_in_sel <= SEL_CLK_3125KHZ;
+						
+					elsif (f_sig <= F_SIG_MAX_10HZ_RES) then
+						div_out_sig <= f_sig/10;
+						clk_in_sel <= SEL_CLK_31250KHZ;
+					end if;
+				-- triangle command ('t')
+				elsif (command_sig = x"74") then
+				
+				-- square command ('c')
+				elsif (command_sig = x"63") then
 				end if;
 			else 
 				reset_pwm_out <= '0';
