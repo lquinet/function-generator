@@ -1,6 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use IEEE.numeric_std.all;
+use work.my_types.all;
 
 entity lut_reader is
 
@@ -17,9 +18,8 @@ entity lut_reader is
 		reset_in					: in std_logic;
 		cnt_pwm_in 				: in unsigned(7 downto 0);
 		nb_pt_to_skip_in			: in unsigned(15 downto 0); -- to count until 1000 0000
+		wave_sel_in					: in wave_sel_type;
 
-		address_rom_out 			: out unsigned (15 DOWNTO 0);
-		q_rom_out						: out unsigned(7 DOWNTO 0);
 		lut_duty_cycle_out	: out unsigned(7 DOWNTO 0)
 	);
 	
@@ -29,25 +29,42 @@ architecture rtl of lut_reader is
 
 	signal address_rom 		: unsigned (15 DOWNTO 0);
 	signal q_rom				: unsigned(7 DOWNTO 0);
+	signal q_rom_sine				: unsigned(7 DOWNTO 0);
+	signal q_rom_triangle				: unsigned(7 DOWNTO 0);
 	signal curr_duty_cycle	: unsigned(7 DOWNTO 0) := x"64"; -- inital curr_duty_cycle is 100
 	
-	COMPONENT rom IS
+	COMPONENT rom_sine IS
 	PORT
 	(
 		address		: IN std_logic_vector (14 DOWNTO 0);
 		clock		: IN std_logic  := '1';
 		q		: OUT std_logic_vector (7 DOWNTO 0)
 	);
-	END COMPONENT rom;
+	END COMPONENT rom_sine;
+	
+	COMPONENT rom_triangle IS
+		PORT
+		(
+			address		: IN STD_LOGIC_VECTOR (14 DOWNTO 0);
+			clock		: IN STD_LOGIC  := '1';
+			q		: OUT STD_LOGIC_VECTOR (7 DOWNTO 0)
+		);
+	END COMPONENT rom_triangle;
 	
 begin
 
-	rom_inst : rom PORT MAP (
+	rom_sine_inst : rom_sine PORT MAP (
 		address	 => std_logic_vector(address_rom(address_rom'LENGTH-2 downto 0)),
 		clock	 => clk_100M_in,
-		unsigned(q)	 => q_rom
+		unsigned(q)	 => q_rom_sine
 	);
 
+	rom_triangle_inst : rom_triangle PORT MAP (
+		address	 => std_logic_vector(address_rom(address_rom'LENGTH-2 downto 0)),
+		clock	 => clk_100M_in,
+		unsigned(q)	 => q_rom_triangle
+	);	
+	
 	process (clk_lut_in, reset_in)
 	begin
 		if (reset_in = '1') then
@@ -61,7 +78,7 @@ begin
 				-- store next LUT value
 				curr_duty_cycle <= q_rom;	 
 	
-				-- Increment rom address
+				-- Increment rom_sine address
 				if (address_rom + nb_pt_to_skip_in < LUT_LENGTH) then
 					address_rom <= address_rom + nb_pt_to_skip_in;
 				else
@@ -71,8 +88,9 @@ begin
 		end if;
 	end process;
 
+	q_rom <= q_rom_sine when wave_sel_in = SINE else
+				q_rom_triangle;
+	
 	lut_duty_cycle_out <= curr_duty_cycle;
-	address_rom_out <= address_rom;
-	q_rom_out <= q_rom;
 	
 end rtl;

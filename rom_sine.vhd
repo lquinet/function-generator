@@ -4,7 +4,7 @@
 -- MODULE: altsyncram 
 
 -- ============================================================
--- File Name: rom.vhd
+-- File Name: rom_sine.vhd
 -- Megafunction Name(s):
 -- 			altsyncram
 --
@@ -40,17 +40,17 @@ USE ieee.std_logic_1164.all;
 LIBRARY altera_mf;
 USE altera_mf.altera_mf_components.all;
 
-ENTITY rom IS
+ENTITY rom_sine IS
 	PORT
 	(
 		address		: IN STD_LOGIC_VECTOR (14 DOWNTO 0);
 		clock		: IN STD_LOGIC  := '1';
 		q		: OUT STD_LOGIC_VECTOR (7 DOWNTO 0)
 	);
-END rom;
+END rom_sine;
 
 
-ARCHITECTURE SYN OF rom IS
+ARCHITECTURE SYN OF rom_sine IS
 
 	SIGNAL sub_wire0	: STD_LOGIC_VECTOR (7 DOWNTO 0);
 
@@ -136,9 +136,9 @@ END SYN;
 -- Retrieval info: CONNECT: @address_a 0 0 15 0 address 0 0 15 0
 -- Retrieval info: CONNECT: @clock0 0 0 0 0 clock 0 0 0 0
 -- Retrieval info: CONNECT: q 0 0 8 0 @q_a 0 0 8 0
--- Retrieval info: GEN_FILE: TYPE_NORMAL rom.vhd TRUE
--- Retrieval info: GEN_FILE: TYPE_NORMAL rom.inc FALSE
--- Retrieval info: GEN_FILE: TYPE_NORMAL rom.cmp TRUE
--- Retrieval info: GEN_FILE: TYPE_NORMAL rom.bsf FALSE
+-- Retrieval info: GEN_FILE: TYPE_NORMAL rom_sine.vhd TRUE
+-- Retrieval info: GEN_FILE: TYPE_NORMAL rom_sine.inc FALSE
+-- Retrieval info: GEN_FILE: TYPE_NORMAL rom_sine.cmp TRUE
+-- Retrieval info: GEN_FILE: TYPE_NORMAL rom_sine.bsf FALSE
 -- Retrieval info: GEN_FILE: TYPE_NORMAL rom_inst.vhd TRUE
 -- Retrieval info: LIB_FILE: altera_mf

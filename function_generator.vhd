@@ -24,6 +24,9 @@ entity function_generator is
 	(	
 		clk_50M_in 	: in std_logic;
 		reset_in		: in std_logic := '0';
+		rx_uart_in	: in std_logic;
+			
+		tx_uart_out : out std_logic;
 		pwm_out : out std_logic := '1';
 		testclk50_out : out std_logic;
 		testclk100_out : out std_logic
@@ -43,8 +46,10 @@ architecture rtl of function_generator is
 	signal lut_nb_pt_to_skip	: unsigned(15 downto 0); 
 	signal locked_pll				: std_logic;
 	signal lut_duty_cycle_sig	: unsigned(7 DOWNTO 0);
+	signal wave_sel_sig			: wave_sel_type := SINE;
 	signal reset_pwm				: std_logic := '0';
 	signal reset_lut_reader		: std_logic := '0';
+	signal n_square_generator_sig : unsigned(19 downto 0);
 	
 	-- for simu
 	signal address_rom 		: unsigned (15 DOWNTO 0);
@@ -76,8 +81,8 @@ architecture rtl of function_generator is
 			reset_in					: in std_logic;
 			cnt_pwm_in 				: in unsigned(7 downto 0);
 			nb_pt_to_skip_in			: in unsigned(15 downto 0); -- to count until 1000 0000
-			address_rom_out 			: out unsigned (15 DOWNTO 0);
-			q_rom_out						: out unsigned(7 DOWNTO 0);
+			wave_sel_in					: in wave_sel_type;
+
 			lut_duty_cycle_out	: out unsigned(7 DOWNTO 0)
 		);
 	end component lut_reader;
@@ -114,11 +119,15 @@ architecture rtl of function_generator is
 			clk_3125KHz_in		: in std_logic;
 			clk_31250KHz_in	: in std_logic;
 			reset_in				: in std_logic;
+			rx_uart_in			: in std_logic;
 			
-			clk_pwm_out				: out std_logic;
+			tx_uart_out					: out std_logic;
+			clk_pwm_out					: out std_logic;
 			lut_nb_pt_to_skip_out	: out unsigned(15 downto 0);
-			reset_pwm_out				: out std_logic;
-			reset_lut_reader_out		: out std_logic
+			wave_sel_out				: out wave_sel_type;
+			n_square_generator_out	: out unsigned(19 downto 0);
+			reset_pwm_out				: out std_logic := '0';
+			reset_lut_reader_out		: out std_logic := '0'
 		);
 	end component frequency_reconfig;	
 	
@@ -143,9 +152,8 @@ begin
 		reset_in => reset_lut_reader,
 		cnt_pwm_in => cnt_pwm_sig,
 		nb_pt_to_skip_in => lut_nb_pt_to_skip,
+		wave_sel_in => wave_sel_sig,
 		
-		address_rom_out => address_rom,
-		q_rom_out => q_rom,
 		lut_duty_cycle_out => lut_duty_cycle_sig
 	);	
 	
@@ -156,7 +164,7 @@ begin
 	port map (	
 		clk_in => clk_pwm,
 		reset_in	=> reset_pwm,
-		lut_duty_cycle_in	=> lut_duty_cycle_sig,
+		duty_cycle_in	=> lut_duty_cycle_sig,
 		pwm_max_value_in => x"64",
 		
 		cnt_pwm_out => cnt_pwm_sig,
@@ -172,9 +180,13 @@ begin
 			clk_3125KHz_in => clk_3125KHz,
 			clk_31250KHz_in => clk_31250KHz,
 			reset_in => '0',
+			rx_uart_in => rx_uart_in,
 			
+			tx_uart_out => tx_uart_out,
 			clk_pwm_out => clk_pwm,
 			lut_nb_pt_to_skip_out => lut_nb_pt_to_skip,
+			wave_sel_out => wave_sel_sig,
+			n_square_generator_out => n_square_generator_sig,
 			reset_pwm_out => reset_pwm,
 			reset_lut_reader_out => reset_lut_reader
 	);	
