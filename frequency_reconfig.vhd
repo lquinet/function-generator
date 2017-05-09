@@ -24,27 +24,26 @@ entity frequency_reconfig is
 		clk_pwm_out					: out std_logic;
 		lut_nb_pt_to_skip_out	: out unsigned(15 downto 0);
 		wave_sel_out				: out wave_sel_type;
-		n_square_generator_out	: out unsigned(19 downto 0);
-		reset_pwm_out				: out std_logic := '0';
+		cnt_square_max_out	: out unsigned(31 downto 0);
 		dataready_uart_out				: out std_logic;
+		reset_pwm_out				: out std_logic := '0';
+		reset_square_generator_out : out std_logic := '0';
 		reset_lut_reader_out		: out std_logic := '0'
 	);
 end frequency_reconfig;
 
 architecture rtl of frequency_reconfig is
 
-	signal f_sig 					: unsigned(19 downto 0) := x"0012C"; -- 300 Hz
 	signal div_out_lut_nb_pt_to_skip			: unsigned(31 DOWNTO 0) := x"0000012C" ;
+	signal div_out_cnt_square_max	: unsigned(31 downto 0);
 	signal clk_in_sel				: clk_in_sel_type := SEL_CLK_3125KHZ;
 	signal dataready_uart		: std_logic;
 	signal command_uart 			: unsigned(7 downto 0);
 	signal data_uart				: unsigned(31 downto 0);
-	signal reset_pwm_sig			: std_logic;
-	signal reset_lut_reader_sig: std_logic;
 	signal wave_sel_sig			: wave_sel_type;
 	signal led_sig					: unsigned(7 downto 0);
 	signal new_cmd_received		: std_logic := '0';
-	
+	signal f_sig					: unsigned(31 downto 0);
 	signal test_cmd				: std_logic := '0';
 	
 	COMPONENT UART IS PORT 
@@ -109,27 +108,33 @@ begin
 				-- frequency command ('f')
 				when x"66" =>
 					if(wave_sel_sig = SQUARE) then
-						if(data_uart <= 1000000) then
-							n_square_generator_out <= x"F4240"/data_uart(19 downto 0);
+						if(data_uart <= 100000000) then
+							--cnt_square_max_out <= x"05F5E100"/data_uart;
+							f_sig <= data_uart;
 						end if;
 					else
 						-- change pwm clock and the number of points to skip depending of the signal frequency
 						if (data_uart <= F_SIG_MAX_1HZ_RES) then
-							div_out_lut_nb_pt_to_skip <= data_uart;
+							--div_out_lut_nb_pt_to_skip <= data_uart;
+							f_sig <= data_uart;
 							clk_in_sel <= SEL_CLK_3125KHZ;	
-						elsif (f_sig <= F_SIG_MAX_10HZ_RES) then
-							div_out_lut_nb_pt_to_skip <= data_uart/10;
+						elsif (data_uart <= F_SIG_MAX_10HZ_RES) then
+							--div_out_lut_nb_pt_to_skip <= data_uart/10;
+							f_sig <= data_uart;
 							clk_in_sel <= SEL_CLK_31250KHZ;
 						end if;
 					end if;
 				-- stop command ('0')
 				when x"30" => null;
-					reset_pwm_sig <= '1';
-					reset_lut_reader_sig <= '1';
+					-- stop all components
+					reset_pwm_out <= '1';
+					reset_lut_reader_out <= '1';
+					reset_square_generator_out <= '1';
 				-- start command ('1')
 				when x"31" => null;
-					reset_pwm_sig <= '0';
-					reset_lut_reader_sig <= '0';				
+					reset_pwm_out <= '0';
+					reset_lut_reader_out <= '0';	
+					reset_square_generator_out <= '0';
 				when others => null;
 			end case;
 		end if;
@@ -167,16 +172,19 @@ begin
 --		end if;
 --	end process;
 	
+	
+	-- Calculate the number of points to skip in LUT
+	div_out_lut_nb_pt_to_skip <= 	f_sig when clk_in_sel = SEL_CLK_3125KHZ else
+											f_sig/10;
 	lut_nb_pt_to_skip_out <= div_out_lut_nb_pt_to_skip(15 downto 0);
 	
+	-- output the clock for pwm
 	clk_pwm_out <= 	clk_3125KHz_in when clk_in_sel = SEL_CLK_3125KHZ else
-						clk_31250KHz_in; -- when clk_in_sel = SEL_CLK_31250KHZ else
+							clk_31250KHz_in; -- when clk_in_sel = SEL_CLK_31250KHZ else
 
-					
-						
-	
-	reset_pwm_out <= reset_pwm_sig;
-	reset_lut_reader_out <= reset_lut_reader_sig;
+	-- Calculate the counter for square wave generator
+	div_out_cnt_square_max <= x"05F5E100"/f_sig;
+	cnt_square_max_out <= div_out_cnt_square_max;
 	
 	wave_sel_out <= wave_sel_sig;
 	

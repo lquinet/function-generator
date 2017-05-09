@@ -27,7 +27,7 @@ entity function_generator is
 		rx_uart_in	: in std_logic;
 			
 		tx_uart_out : out std_logic;
-		pwm_out : out std_logic := '1';
+		function_generator_out : out std_logic := '1';
 		testclk50_out : out std_logic;
 		testclk100_out : out std_logic;
 		dataready_uart_out : out std_logic;
@@ -40,6 +40,8 @@ end function_generator;
 
 architecture rtl of function_generator is
 
+	signal pwm_out_sig 			: std_logic;
+	signal square_wave_sig		: std_logic;
 	signal clk_100MHz				: std_logic;
 	signal clk_31250KHz			: std_logic;
 	signal clk_3125KHz			: std_logic;
@@ -51,7 +53,8 @@ architecture rtl of function_generator is
 	signal wave_sel_sig			: wave_sel_type := SINE;
 	signal reset_pwm				: std_logic := '0';
 	signal reset_lut_reader		: std_logic := '0';
-	signal n_square_generator_sig : unsigned(19 downto 0);
+	signal reset_square_generator : std_logic := '0';
+	signal cnt_square_max_sig : unsigned(31 downto 0);
 	signal test_cnt_pwm : std_logic := '0';
 	
 	-- for simu
@@ -128,13 +131,26 @@ architecture rtl of function_generator is
 			clk_pwm_out					: out std_logic;
 			lut_nb_pt_to_skip_out	: out unsigned(15 downto 0);
 			wave_sel_out				: out wave_sel_type;
-			n_square_generator_out	: out unsigned(19 downto 0);
-			reset_pwm_out				: out std_logic := '0';
+			cnt_square_max_out	: out unsigned(31 downto 0);
 			dataready_uart_out		: out std_logic;
+			reset_pwm_out				: out std_logic := '0';
+			reset_square_generator_out : out std_logic := '0';
 			reset_lut_reader_out		: out std_logic := '0'
 		);
 	end component frequency_reconfig;	
 	
+	component square_generator is
+		port 
+		(	
+			clk_100MHz_in		: in std_logic;
+			reset_in				: in std_logic;
+			wave_sel_in			: in wave_sel_type;
+			counter_max_value_in	: in unsigned(31 downto 0);
+			
+			square_wave_out	: out std_logic
+		);
+	end component square_generator;
+
 	
 begin
 	
@@ -172,7 +188,7 @@ begin
 		pwm_max_value_in => x"64",
 		
 		cnt_pwm_out => cnt_pwm_sig,
-		pwm_out => pwm_out
+		pwm_out => pwm_out_sig
 	);
 	
 	frequency_reconfig_inst : frequency_reconfig generic map (
@@ -190,18 +206,31 @@ begin
 			clk_pwm_out => clk_pwm,
 			lut_nb_pt_to_skip_out => lut_nb_pt_to_skip,
 			wave_sel_out => wave_sel_sig,
-			n_square_generator_out => n_square_generator_sig,
-			reset_pwm_out => reset_pwm,
+			cnt_square_max_out => cnt_square_max_sig,
 			dataready_uart_out => dataready_uart_out,
+			reset_pwm_out => reset_pwm,
+			reset_square_generator_out => reset_square_generator,
 			reset_lut_reader_out => reset_lut_reader
 	);	
+	
+	square_generator_inst : square_generator port map (	
+		clk_100MHz_in => clk_100MHz,
+		reset_in => reset_square_generator,
+		wave_sel_in => wave_sel_sig,
+		counter_max_value_in => cnt_square_max_sig,
+		
+		square_wave_out => square_wave_sig
+	);
+	
+	function_generator_out <= 	square_wave_sig when wave_sel_sig = SQUARE else
+										pwm_out_sig;
 	
 	testclk100_out <= clk_100MHz;
 	testclk50_out <= clk_50M_in;
 	
 	process (clk_100MHz)
 	begin
-		if rising_edge(clk_100MHz) then
+		if (rising_edge(clk_100MHz)) then
 			if (cnt_pwm_sig = 100) then
 				test_cnt_pwm <= not test_cnt_pwm;
 			end if;
