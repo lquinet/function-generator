@@ -29,7 +29,9 @@ entity function_generator is
 		tx_uart_out : out std_logic;
 		pwm_out : out std_logic := '1';
 		testclk50_out : out std_logic;
-		testclk100_out : out std_logic
+		testclk100_out : out std_logic;
+		dataready_uart_out : out std_logic;
+		test_cnt_pwm_out : out std_logic
 		--		address		: IN STD_LOGIC_VECTOR (14 DOWNTO 0);
 		--		q		: OUT STD_LOGIC_VECTOR (7 DOWNTO 0)
 	);
@@ -50,6 +52,7 @@ architecture rtl of function_generator is
 	signal reset_pwm				: std_logic := '0';
 	signal reset_lut_reader		: std_logic := '0';
 	signal n_square_generator_sig : unsigned(19 downto 0);
+	signal test_cnt_pwm : std_logic := '0';
 	
 	-- for simu
 	signal address_rom 		: unsigned (15 DOWNTO 0);
@@ -127,6 +130,7 @@ architecture rtl of function_generator is
 			wave_sel_out				: out wave_sel_type;
 			n_square_generator_out	: out unsigned(19 downto 0);
 			reset_pwm_out				: out std_logic := '0';
+			dataready_uart_out		: out std_logic;
 			reset_lut_reader_out		: out std_logic := '0'
 		);
 	end component frequency_reconfig;	
@@ -188,10 +192,22 @@ begin
 			wave_sel_out => wave_sel_sig,
 			n_square_generator_out => n_square_generator_sig,
 			reset_pwm_out => reset_pwm,
+			dataready_uart_out => dataready_uart_out,
 			reset_lut_reader_out => reset_lut_reader
 	);	
 	
 	testclk100_out <= clk_100MHz;
 	testclk50_out <= clk_50M_in;
-
+	
+	process (clk_100MHz)
+	begin
+		if rising_edge(clk_100MHz) then
+			if (cnt_pwm_sig = 100) then
+				test_cnt_pwm <= not test_cnt_pwm;
+			end if;
+		end if;
+	end process;
+	
+	test_cnt_pwm_out <= test_cnt_pwm;
+	
 end rtl;
