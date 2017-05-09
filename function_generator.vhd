@@ -16,7 +16,7 @@ entity function_generator is
 		PWM_OUT_FREQ : unsigned(19 downto 0) := x"07A12"; -- 31250 Hz (f_sig <= 625Hz)
 		-- PWM_OUT_FREQ : unsigned(19 downto 0) := x"4C4B4" -- 312500 Hz
 		F_SIG_MAX_1HZ_RES : natural :=625;
-		F_SIG_MAX_10HZ_RES : natural :=9765;
+		F_SIG_MAX_10HZ_RES : natural :=6250;
 		F_SIG_MAX : natural := 31250
 	);
 
@@ -42,6 +42,7 @@ architecture rtl of function_generator is
 
 	signal pwm_out_sig 			: std_logic;
 	signal square_wave_sig		: std_logic;
+	signal pwm_max_value_sig	: unsigned(7 downto 0);
 	signal clk_100MHz				: std_logic;
 	signal clk_31250KHz			: std_logic;
 	signal clk_3125KHz			: std_logic;
@@ -88,6 +89,7 @@ architecture rtl of function_generator is
 			cnt_pwm_in 				: in unsigned(7 downto 0);
 			nb_pt_to_skip_in			: in unsigned(15 downto 0); -- to count until 1000 0000
 			wave_sel_in					: in wave_sel_type;
+			pwm_max_value_in		: in unsigned(7 downto 0);
 
 			lut_duty_cycle_out	: out unsigned(7 DOWNTO 0)
 		);
@@ -133,6 +135,7 @@ architecture rtl of function_generator is
 			wave_sel_out				: out wave_sel_type;
 			cnt_square_max_out	: out unsigned(31 downto 0);
 			dataready_uart_out		: out std_logic;
+			pwm_max_value_out			: out unsigned(7 downto 0);
 			reset_pwm_out				: out std_logic := '0';
 			reset_square_generator_out : out std_logic := '0';
 			reset_lut_reader_out		: out std_logic := '0'
@@ -173,6 +176,7 @@ begin
 		cnt_pwm_in => cnt_pwm_sig,
 		nb_pt_to_skip_in => lut_nb_pt_to_skip,
 		wave_sel_in => wave_sel_sig,
+		pwm_max_value_in => pwm_max_value_sig,
 		
 		lut_duty_cycle_out => lut_duty_cycle_sig
 	);	
@@ -185,7 +189,7 @@ begin
 		clk_in => clk_pwm,
 		reset_in	=> reset_pwm,
 		duty_cycle_in	=> lut_duty_cycle_sig,
-		pwm_max_value_in => x"64",
+		pwm_max_value_in => pwm_max_value_sig,
 		
 		cnt_pwm_out => cnt_pwm_sig,
 		pwm_out => pwm_out_sig
@@ -208,6 +212,7 @@ begin
 			wave_sel_out => wave_sel_sig,
 			cnt_square_max_out => cnt_square_max_sig,
 			dataready_uart_out => dataready_uart_out,
+			pwm_max_value_out => pwm_max_value_sig,
 			reset_pwm_out => reset_pwm,
 			reset_square_generator_out => reset_square_generator,
 			reset_lut_reader_out => reset_lut_reader

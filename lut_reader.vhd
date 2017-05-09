@@ -19,6 +19,7 @@ entity lut_reader is
 		cnt_pwm_in 				: in unsigned(7 downto 0);
 		nb_pt_to_skip_in			: in unsigned(15 downto 0); -- to count until 1000 0000
 		wave_sel_in					: in wave_sel_type;
+		pwm_max_value_in		: in unsigned(7 downto 0);
 
 		lut_duty_cycle_out	: out unsigned(7 DOWNTO 0)
 	);
@@ -32,6 +33,8 @@ architecture rtl of lut_reader is
 	signal q_rom_sine				: unsigned(7 DOWNTO 0);
 	signal q_rom_triangle				: unsigned(7 DOWNTO 0);
 	signal curr_duty_cycle	: unsigned(7 DOWNTO 0) := x"64"; -- inital curr_duty_cycle is 100
+	signal mult_out_duty_cycle : unsigned (15 DOWNTO 0);
+	signal div_out_duty_cycle : unsigned (15 DOWNTO 0);
 	
 	COMPONENT rom_sine IS
 	PORT
@@ -90,7 +93,14 @@ begin
 
 	q_rom <= q_rom_sine when wave_sel_in = SINE else
 				q_rom_triangle;
+				
+	-- Rescale duty cycle depending of pwm_max_value_in (LUT value is comprised between 0 and 100)
+	mult_out_duty_cycle <= curr_duty_cycle*pwm_max_value_in;
+	div_out_duty_cycle <= mult_out_duty_cycle/x"64";
 	
-	lut_duty_cycle_out <= curr_duty_cycle;
+	lut_duty_cycle_out <= 	curr_duty_cycle when pwm_max_value_in = 100 else
+									div_out_duty_cycle(7 downto 0);
+	
+	--lut_duty_cycle_out <= curr_duty_cycle;
 	
 end rtl;

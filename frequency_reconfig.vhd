@@ -26,6 +26,7 @@ entity frequency_reconfig is
 		wave_sel_out				: out wave_sel_type;
 		cnt_square_max_out	: out unsigned(31 downto 0);
 		dataready_uart_out				: out std_logic;
+		pwm_max_value_out			: out unsigned(7 downto 0) := x"64"; -- default value is 100
 		reset_pwm_out				: out std_logic := '0';
 		reset_square_generator_out : out std_logic := '0';
 		reset_lut_reader_out		: out std_logic := '0'
@@ -118,10 +119,16 @@ begin
 							--div_out_lut_nb_pt_to_skip <= data_uart;
 							f_sig <= data_uart;
 							clk_in_sel <= SEL_CLK_3125KHZ;	
+							pwm_max_value_out <= x"64"; -- 100
 						elsif (data_uart <= F_SIG_MAX_10HZ_RES) then
 							--div_out_lut_nb_pt_to_skip <= data_uart/10;
 							f_sig <= data_uart;
 							clk_in_sel <= SEL_CLK_31250KHZ;
+							pwm_max_value_out <= x"64"; -- 100
+						else
+							f_sig <= data_uart;
+							pwm_max_value_out <= x"20"; -- 32
+							clk_in_sel <= SEL_CLK_100MHZ;
 						end if;
 					end if;
 				-- stop command ('0')
@@ -156,36 +163,23 @@ begin
 		end if;
 	end process;
 	
---	-- Process to reset pwm and lut_reader
---	process (clk_100MHz_in, reset_in)
---	variable prevDataready : std_logic := '0';
---	begin
---		if(rising_edge(clk_100MHz_in)) then
---			if (dataready_uart = '1' and reset_lut_reader_sig ='0' and reset_pwm_sig = '0') then
---				-- reset pwm and lut
---				reset_pwm_sig <= '1';
---				reset_lut_reader_sig <= '1';		
---			else
---				reset_pwm_sig <= '0';
---				reset_lut_reader_sig <= '0';
---			end if;
---		end if;
---	end process;
-	
-	
 	-- Calculate the number of points to skip in LUT
 	div_out_lut_nb_pt_to_skip <= 	f_sig when clk_in_sel = SEL_CLK_3125KHZ else
-											f_sig/10;
+											f_sig/10 when clk_in_sel = SEL_CLK_31250KHZ else
+											f_sig/100;
+									
 	lut_nb_pt_to_skip_out <= div_out_lut_nb_pt_to_skip(15 downto 0);
 	
 	-- output the clock for pwm
 	clk_pwm_out <= 	clk_3125KHz_in when clk_in_sel = SEL_CLK_3125KHZ else
-							clk_31250KHz_in; -- when clk_in_sel = SEL_CLK_31250KHZ else
-
+							clk_31250KHz_in when clk_in_sel = SEL_CLK_31250KHZ else
+							clk_100MHz_in;
+							
 	-- Calculate the counter for square wave generator
 	div_out_cnt_square_max <= x"05F5E100"/f_sig;
 	cnt_square_max_out <= div_out_cnt_square_max;
 	
+	-- output the wave selection used by the top level to select triangle or sine in LUT or square with square generator
 	wave_sel_out <= wave_sel_sig;
 	
 	-- for debug
